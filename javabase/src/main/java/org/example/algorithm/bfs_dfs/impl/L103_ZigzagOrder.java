@@ -68,6 +68,8 @@ public class L103_ZigzagOrder implements BFS {
         }
     }
 
+
+
     @Override
     public void BFSWay(Object... params) {
         TreeNode param = (TreeNode) params[0];
