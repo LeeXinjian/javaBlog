@@ -1,7 +1,10 @@
 package org.example.algorithm.link;
 
-import org.example.algorithm.base.Node;
-import static org.example.algorithm.base.Node.soutLink;
+
+import org.example.algorithm.util.link.ListNode;
+
+import static org.example.algorithm.util.link.ListNodeUtil.initNodes;
+import static org.example.algorithm.util.link.ListNodeUtil.printNode;
 
 /**
  * 翻转链表
@@ -9,37 +12,28 @@ import static org.example.algorithm.base.Node.soutLink;
 public class O24_ReChangeLink {
 
     public static void main(String[] args) {
-        Node node = initNode();
-        soutLink(node);
-        node = doConvert(node);
-        soutLink(node);
+
+        int[] init = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        printNode(
+                doConvert(
+                        initNodes(init)
+                )
+        );
     }
 
-    private static Node doConvert(Node node) {
-        if (node == null || node.getNext() == null) {
+    private static ListNode doConvert(ListNode node) {
+        if (node == null || node.next == null) {
             return node;
         }
 
-        Node tmp = null;
+        ListNode tmp = null;
         while (node != null) {
-            tmp = new Node(tmp, node.getValue());
-            node = node.getNext();
+            tmp = new ListNode(node.val, tmp);
+            node = node.next;
         }
 
         return tmp;
     }
 
-
-
-    private static Node initNode() {
-        Node first = new Node(null, 50);
-        Node current = first;
-        for (int i = 0; i < 10; i++) {
-            current.setNext(new Node(null, i));
-            current = current.getNext();
-        }
-
-        return first;
-    }
 
 }

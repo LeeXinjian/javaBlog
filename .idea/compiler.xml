@@ -6,9 +6,11 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="javaweb" />
         <module name="javabase" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="javaweb" target="1.7" />
+    </bytecodeTargetLevel>
   </component>
 </project>
