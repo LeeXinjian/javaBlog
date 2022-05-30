@@ -47,6 +47,8 @@ public class L103_ZigzagOrder implements BFS {
         return resultList;
     }
 
+
+
     private void putResultByOrder(boolean isAsc, LinkedList<Integer> levelResult, TreeNode pop) {
         // 正序 , 往结果集的尾部
         if (isAsc) {
@@ -67,8 +69,6 @@ public class L103_ZigzagOrder implements BFS {
             queue.add(right);
         }
     }
-
-
 
     @Override
     public void BFSWay(Object... params) {
