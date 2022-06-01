@@ -1,6 +1,6 @@
 package org.example.spring;
 
-import org.springframework.context.ApplicationContext;
+import org.example.spring.beans.Car;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 public class Test {

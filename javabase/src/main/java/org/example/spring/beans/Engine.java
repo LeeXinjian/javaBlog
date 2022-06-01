@@ -1,4 +1,4 @@
-package org.example.spring;
+package org.example.spring.beans;
 
 import org.springframework.stereotype.Service;
 
@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 public class Engine {
 
     public void engineRunning(){
-        System.out.println("引擎在跑");
+        System.out.println("引擎发动");
     }
 
 }

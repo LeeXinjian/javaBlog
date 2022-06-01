@@ -71,12 +71,12 @@ ReentranLock很简单，如下就是一个最简单的使用demo，
 
 再看下ReentrantLock的核心字段
 
-![img_1.png](img_1.png)
+![img_1.png](.AQS_images/img_1.png)
 
 可以发现ReentrantLock只有一个核心字段sync，从构造方法中我们可以得知，我们有两种策略可以选择:公平与非公平.两者区别只是创建了不同的对象，引用到当前的sync字段.
 因此我们查看FairSync、与NonfairSync类图可知，两者均继承了ReentrantLock中的内部抽象类Sync，而Sync实现了AQS。
 
-![img.png](img.png)
+![img.png](.AQS_images/img.png)
 
 到此把关系图存在心里留下印象，下面我们来看 锁操作
 
@@ -90,7 +90,7 @@ ReentranLock很简单，如下就是一个最简单的使用demo，
 如果排队的线程一直占用cpu资源等待，是不是也不是很合适。所以我们要阻塞线程资源。
 
 AQS就是一套机制的一个实现 我们来看下AQS中几个核心字段
-![img_2.png](img_2.png)
+![img_2.png](.AQS_images/img_2.png)
 
 比较重要的是如下几个字段
 
@@ -245,7 +245,7 @@ acquire为AQS方法
 
 AQS队列由Node维护，我们先来看下Node结点的核心字段。
 
-![img_4.png](img_4.png)
+![img_4.png](.AQS_images/img_4.png)
 
 比较核心的字段为选中标注蓝色的部分
 
@@ -406,11 +406,11 @@ enq:
 
 从改写后的代码可以清晰的读到，代码只是简单的将新增结点放入队列中。流程为：新建结点，如果队列没有初始化则初始化队列，然后将新建的结点放入队列中。 我们可以通过图解的方式来清晰的看到队列的情况。 首先，当队列中无元素时，执行初始化
 
-![img_5.png](img_5.png)
+![img_5.png](.AQS_images/img_5.png)
 
 然后新增一个结点，从尾端插入。新增结点的线程为当前线程，nextWaiter为独占模式，即为null。
 
-![img_6.png](img_6.png)
+![img_6.png](.AQS_images/img_6.png)
 
 ##### 2.2.3  acquireQueued - 阻塞当前线程
 
@@ -769,7 +769,7 @@ java.util.concurrent.locks.AbstractQueuedSynchronizer.parkAndCheckInterrupt -> p
 
 Sync对象有两个策略、一种为公平的实现、一种为非公平的实现。两者唯一的不同是实现AQS的tryAcquire()时策略不同，我们对比两种实现的解决方案可以发现公平锁多了!hasQueuedPredecessors()的操作，
 
-![img_7.png](img_7.png)
+![img_7.png](.AQS_images/img_7.png)
 
 hasQueuedPredecessors方法实现如下：其会去检查队列中是否还有其他元素。
 
@@ -789,7 +789,7 @@ hasQueuedPredecessors方法实现如下：其会去检查队列中是否还有�
 即公平锁会去检查当前队列还是否有等待线程，如果有就直接入列。如果没有才会尝试获取锁。而非公平锁会直接先去尝试获取锁，获取不到才入队列。
 
 而当释放锁时,两者调用均为Sync父类的方法，策略相同，即都从队列头开始唤醒元素重新尝试获取锁。
-![img_8.png](img_8.png)
+![img_8.png](.AQS_images/img_8.png)
 
 ### 三、ReentranLock的线程通信
 
