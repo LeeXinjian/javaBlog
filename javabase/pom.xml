@@ -82,7 +82,7 @@
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson</artifactId>
-            <version>2.2.13</version>
+            <version>3.17.3</version>
         </dependency>
 
         <!-- org.springframework/spring-test -->
