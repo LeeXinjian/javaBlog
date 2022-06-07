@@ -6,7 +6,7 @@ import org.apache.curator.framework.CuratorFramework;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class LockingExample {
+public class ZookeeperLock {
 
     private static final int QTY = 5;
     private static final int REPETITIONS = QTY * 10;

@@ -11,7 +11,6 @@ public class L206_ReverseList {
             return head;
         }
 
-        new HashMap<>().put()
         ListNode newHead = reverseList(head.next);
 
         head.next.next = head;
