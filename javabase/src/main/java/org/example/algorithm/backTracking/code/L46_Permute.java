@@ -1,4 +1,4 @@
-package org.example.algorithm.leetcode;
+package org.example.algorithm.backTracking.code;
 
 import java.util.ArrayList;
 import java.util.List;
