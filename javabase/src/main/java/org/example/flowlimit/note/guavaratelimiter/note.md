@@ -1,24 +1,227 @@
+[TOC]
+
 # GuavaRateLimiter限流
 
-## 一、限流使用场景
+## 一、GuavaRateLimiter使用
 
-## 二、GuavaRateLimiter使用
+### 1、maven坐标
 
-### 1、限流
+```xml
+    <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>25.1-jre</version>
+    </dependency>
+```
 
-### 2、预热
+### 2、限流
 
-## 三、优缺点及适用场景
+```java
 
-### 1、限流
+public class BaseUse {
 
-### 2、预热
+    public static void main(String[] args) throws InterruptedException {
+        // 限流使用示例
+        limit();
+    }
 
-## 四、GuavaRateLimiter源码分析
+    private static void limit() {
+        AtomicInteger count = new AtomicInteger(0);
+        //新建一个每秒限制10个的令牌桶
+        RateLimiter rateLimiter = RateLimiter.create(10.0);
+        ExecutorService executor = Executors.newFixedThreadPool(100);
+        for (int i = 0; i < 1000000; i++) {
+            executor.execute(
+                    () -> {
+                        //获取令牌桶中一个令牌，最多等待1秒
+                        if (rateLimiter.tryAcquire(1, 10, TimeUnit.MINUTES))
+                            System.out.println(
+                                    Thread.currentThread().getName() +
+                                            " " + LocalDateTime.now().toString()
+                                            + " " + count.incrementAndGet()
+                            );
+                    });
+        }
+
+        executor.shutdown();
+    }
+}
+
+```
+
+### 3、预热
+
+```java
+public class BaseUse {
+
+    public static void main(String[] args) throws InterruptedException {
+ 
+        // 预热
+        warmupLimit();
+    }
+
+    private static void warmupLimit() {
+        RateLimiter r = RateLimiter.create(10, 5, TimeUnit.SECONDS);
+        while (true) {
+            r.acquire(1);
+            System.out.println("get 1 tokens: " + LocalDateTime.now().toString() + "s");
+        }
+    }
+    
+```
+
+## 二、GuavaRateLimiter源码分析
 
 ### 1. 限流
 
+GuavaRateLimiter使用了令牌桶算法，实现了平滑的流量整形。关于限流的基本算法讲解可以点击 [这里](https://note.youdao.com/ynoteshare/index.html?id=2eec5f5df33d02e743eb750e42fa45a3&type=note&_time=1655795577805)
+
+我们先来简单复习一下令牌桶的基本思想。令牌桶侧重的是对入口流量速率的限制。整体流程分为如下几步
+
+* 根据上次请求时间差 * 设定的分配速率 当前最大可放行请求个数
+* 剩余容量与最大可放行请求个数 取小作为实际 可放行请求个数
+* 剩余流量 - 可放行请求个数 > 0 则说明可以放行,否则不可放行
+
+所以我们猜想RateLimiter的初始化便根据用户设置的QPS计算
+
+* 最大令牌数
+* 最大分配速率
+* 维护剩余令牌容量，上次请求时间。
+
+接下来我们开始跟踪初始化的源码,来查看其是如何维护这些数据的。
+
 #### 1.1 初始化
+
+RateLimiter非常简单,只需要一行代码即可。
+
+```java
+    RateLimiter rateLimiter = RateLimiter.create(10.0);
+```
+
+在我们深究初始化做了什么操作之前，现在看下限流的类关系图与基本字段
+![](.note_images/限流方法的类图与基本字段.png)
+
+限流主要用到了SmoothBursty，可以根据类图判断其主要功能是根据SmoothRateLimter中的字段维护的。其用maxPermits和storedPermits维护最最大和现有的permit数量，这与我们猜想一致。
+还有另外两个字段,stableIntervalMicros表示两次请求最小的时间间隔,neetFreeTicketMicros表示下次请求的时间毫秒数。 可以猜想其判断 ”当前最大可放行请求个数“
+是根据计算当前请求时间是否到达了下次请求的时间（neetFreeTicketMicros）来判断的， 这样在短暂无流量后，突然来了一波流量的场景下，比（上次请求时间差 * 设定的分配速率）更能保证流量的平滑性。  
+
+源码阅读：
+```java
+  /**
+   * SleepingStopwatch.createFromSystemTimer() 只是创建了一个SleepingStopWatch,主要跟踪create方法
+  */
+  public static RateLimiter create(double permitsPerSecond) {
+    return create(permitsPerSecond, SleepingStopwatch.createFromSystemTimer());
+  }
+  
+  // 创建一个SleepingStopwatch
+   public static SleepingStopwatch createFromSystemTimer() {
+      return new SleepingStopwatch() {
+        final Stopwatch stopwatch = Stopwatch.createStarted();
+
+        @Override
+        protected long readMicros() {
+          return stopwatch.elapsed(MICROSECONDS);
+        }
+
+        @Override
+        protected void sleepMicrosUninterruptibly(long micros) {
+          if (micros > 0) {
+            Uninterruptibles.sleepUninterruptibly(micros, MICROSECONDS);
+          }
+        }
+      };
+    }
+    
+  @VisibleForTesting
+  static RateLimiter create(double permitsPerSecond, SleepingStopwatch stopwatch) {
+    RateLimiter rateLimiter = new SmoothBursty(stopwatch, 1.0 /* maxBurstSeconds */);
+    rateLimiter.setRate(permitsPerSecond);
+    return rateLimiter;
+  }
+  
+```
+
+```java
+    SmoothBursty(SleepingStopwatch stopwatch, double maxBurstSeconds) {
+      super(stopwatch);
+      this.maxBurstSeconds = maxBurstSeconds;
+    }
+    
+    private SmoothRateLimiter(SleepingStopwatch stopwatch) {
+        super(stopwatch);
+    }
+```
+
+首先我们根据一系列的构造方法跟下去，发现只是去初始化了SmoothBursty中的stopwatch以及SmoothRateLimiter中的maxBurstSeconds。
+SmoothRateLimiter中的maxBurstSeconds之前没有介绍过，我们可以阅读源码上的注释
+   
+    如果这个限流器很久没使用了，允许多少秒的的permits，这个参数默认为1。
+    The work (permits) of how many seconds can be saved up if this RateLimiter is unused?
+
+再去看rateLimiter.setRate(permitsPerSecond)中的逻辑
+```java
+ public final void setRate(double permitsPerSecond) {
+    // 业务check
+    checkArgument(
+        permitsPerSecond > 0.0 && !Double.isNaN(permitsPerSecond), "rate must be positive");
+    // 懒加载的锁对象
+    synchronized (mutex()) {
+      //  stopwatch.readMicros() 读取从限流器启动到现在的时间差
+      doSetRate(permitsPerSecond, stopwatch.readMicros());
+    }
+  }
+```
+```java
+ @Override
+  final void doSetRate(double permitsPerSecond, long nowMicros) {
+    resync(nowMicros);
+    // 请求间隔
+    double stableIntervalMicros = SECONDS.toMicros(1L) / permitsPerSecond;
+    this.stableIntervalMicros = stableIntervalMicros;
+    doSetRate(permitsPerSecond, stableIntervalMicros);
+  }
+```
+可以发现主要的代码逻辑在doSetRate中。 
+这部分代码执行三个步骤
+*  resync(nowMicros),这个方法在限流使用中也会用到,会重置 storedPermits and nextFreeTicketMicro
+*  初始化stableIntervalMicros,即根据Qps数算出每次请求间隔的毫秒数
+*  doSetRate: 初始化maxPermits和storedPermits
+
+先来看resync(nowMicros) 。这个方法在限流中也会再次用到，初始化逻辑中现根据初始化的实际值去看一下都初始化了什么值就好，具体逻辑会在限流中详细说明
+
+```java
+  void resync(long nowMicros) {
+    // nowMicros  ：当前距离限流器初始化的时间差
+    // nextFreeTicketMicros ： 初始化为0 
+    if (nowMicros > nextFreeTicketMicros) {
+      // 根据当前时间可通过请求数量
+      double newPermits = (nowMicros - nextFreeTicketMicros) / coolDownIntervalMicros();
+      // 实际可通过请求数量
+      storedPermits = min(maxPermits, storedPermits + newPermits);
+      // 更新下次可获取请求时间
+      nextFreeTicketMicros = nowMicros;
+    }
+  }
+```
+doSetRate：
+```java
+  @Override
+    void doSetRate(double permitsPerSecond, double stableIntervalMicros) {
+      double oldMaxPermits = this.maxPermits;
+      maxPermits = maxBurstSeconds * permitsPerSecond;
+      if (oldMaxPermits == Double.POSITIVE_INFINITY) {
+        // if we don't special-case this, we would get storedPermits == NaN, below
+        storedPermits = maxPermits;
+      } else {
+        // 初始化为0
+        storedPermits =
+            (oldMaxPermits == 0.0)
+                ? 0.0 // initial state
+                : storedPermits * maxPermits / oldMaxPermits;
+      }
+    }
+```
 
 #### 1.2 限流
 

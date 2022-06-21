@@ -3,20 +3,16 @@
 
 ## 一、固定窗口限流
 ### 1.实现思想
-根据固定的时间大小作为一个窗口，对这个窗口进行流量统计
-### 2.优缺点
-* 优点:实现简单
-* 缺点:非规则流量访问时无法精准的进行限流。
-
+如果我们去实现一个限流的算法，我们的第一想法就是实现一个计数器，统计固定时间内访问的次数。固定窗口限流算法就是这样的一个实现，根据固定的时间大小作为一个窗口，对这个窗口进行流量统计
 我们只统计固定时间范围的访问请求，对于不均匀的访问场景，会出现限流失败的场景。解决方案就是通过多个更细维度的windows，来实现更细维度的限流控制，也就是滑动窗口限流。
 ![](./.FlowLimit_images/无法精准限流.png)
-### 3.代码示例
+### 2.代码示例
 我们把整个限流过程分为三部分
 1. 限流策略及数据统计
 2. window实体,包括窗口的时间大小配置、窗口访问次数
 3. 限流判断
 
-#### 3.1 限流策略
+#### 2.1 限流策略
 首先设置限流策略，规定了具体限流的动作，具体限流判断由子类实现
 ```java
 public abstract class LimitCondition {
@@ -57,7 +53,7 @@ public class MaxCountLimitCondition extends LimitCondition {
 }
 ```
 
-#### 3.2 window实体
+#### 2.2 window实体
 window主要作用为
 1. 规定了当前窗口处理的时间边界（左边界和时间间隔）
 2. 当前通过次数统计（由子类实现）。
@@ -150,7 +146,7 @@ public class FixCountWindow extends Window {
     }
 }
 ```
-#### 3.3 限流判断
+#### 2.3 限流判断
 ```java
 
 /**
@@ -200,7 +196,7 @@ public class FixedWindowDemo {
 }
 ```
 
-#### 3.4 运行主类与测试结果
+#### 2.4 运行主类与测试结果
 主类：我们同时开启五个线程，然后限流为三个请求，可以看到会有两个线程被限流掉
 ```java
 
@@ -243,6 +239,9 @@ public class Test {
 为了解决问题1，我们可以把一个固定时间窗口拆分成N个子窗口，再对拆分掉的窗口进行流量分析，拆分的越细致，限流越精准。
 
 作好拆分后，我们可以基于时间滚动创建新的子窗口，解决问题2。比如每秒拆分成四个子窗口，时间到达1000-1250毫秒时，丢弃0-250毫秒的子窗口，只统计250-1250这五个子窗口即可。
+
+需要指出的是，滑动限流以更小的粒度尽量延缓了限流不精准的问题，并没有解决。实际使用中时，也需要根据自己的流量和内存大小的判断，控制窗口大小。
+滑动窗口限流也无法实现平滑的流量控制。
 ![](./.FlowLimit_images/滑动时间窗口.png)
 ### 2.代码示例
 具体代码结构实现与固定窗口基本一致,公共父类不再重复给出
@@ -579,9 +578,22 @@ public class Test {
 我们也可以将QPS和桶容量两个指标来分开，来尽量避免这种问题。
 ## 四、令牌桶限流
 ### 1.实现思想
-### 2.优缺点
-### 3.使用场景
-### 4.代码示例
+漏桶算法旨在控制流量输出，我们以固定频次输出流量。如果我们以固定速率输入流量，就是令牌桶算法的思想了。Guava的RateLimiter就是使用的这个算法实现的，后续我们也会聊聊RateLimiter的具体实现。
+### 2.代码示例
+```java
+long now = System.currentTimeMillis();
+left = Math.min(capacity, left + (long)((now - lastInjectTime) * velocity));
+if (left - 1 > 0) {
+    lastInjectTime = now;
+    left--;
+    return true;
+} else {
+    return false;
+}
+```
 
 
-https://zhuanlan.zhihu.com/p/376564740
+
+参考文献：
+1. https://zhuanlan.zhihu.com/p/376564740
+2. https://www.alibabacloud.com/blog/throttling-solutions-in-standalone-and-distributed-scenarios_596984?spm=a2c65.11461544.0.0.58d25355ERuQRb

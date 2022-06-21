@@ -29,7 +29,7 @@ public class BaseUse {
         AtomicInteger count = new AtomicInteger(0);
         //新建一个每秒限制10个的令牌桶
         RateLimiter rateLimiter = RateLimiter.create(10.0);
-        ExecutorService executor = Executors.newFixedThreadPool(100);
+        ExecutorService executor = Executors.newFixedThreadPool(1);
         for (int i = 0; i < 1000000; i++) {
             executor.execute(
                     () -> {
