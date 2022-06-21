@@ -2,25 +2,32 @@ package org.example.spring.el;
 
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
-import org.springframework.expression.ExpressionParser;
+import org.springframework.expression.common.CompositeStringExpression;
+import org.springframework.expression.spel.standard.SpelExpression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.springframework.expression.ParserContext.TEMPLATE_EXPRESSION;
 
 public class SpringElTest {
 
     public static void main(String[] args) {
 
-        ExpressionParser parser = new SpelExpressionParser();
-        Expression expression = parser.parseExpression("(#a+#b)/#c");
+        CompositeStringExpression expression = (CompositeStringExpression) new SpelExpressionParser()
+                .parseExpression("#{ (#a+#b)/#c }", TEMPLATE_EXPRESSION);
 
-//        //解析表达式，如果表达式是一个模板表达式，需要为解析传入模板解析器上下文。
-//        Expression[] expressions = expression.getExpressions();
-//
-//        // 解析的EL表达式结果ch
-//        List<String> formulaElementList = Arrays.stream(expressions)
-//                .filter(entity -> entity instanceof SpelExpression)
-//                .map(entity -> entity.getExpressionString().replaceAll("#", ""))
-//                .collect(Collectors.toList());
+        //解析表达式，如果表达式是一个模板表达式，需要为解析传入模板解析器上下文。
+        Expression[] expressions = expression.getExpressions();
+
+        // 解析的EL表达式结果ch
+        List<String> formulaElementList = Arrays.stream(expressions)
+                .filter(entity -> entity instanceof SpelExpression)
+                .map(entity -> entity.getExpressionString().replaceAll("#", ""))
+                .collect(Collectors.toList());
 
         EvaluationContext context = new StandardEvaluationContext();
         context.setVariable("a", 2);

@@ -2,6 +2,7 @@ package org.example.io.bio;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.HashSet;
 
 //客户端代码
 public class SocketClient {
