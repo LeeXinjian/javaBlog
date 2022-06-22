@@ -1,10 +1,12 @@
-package org.example.zookeeper;
+package org.example.distributedlock.demo.zk;
 
+import lombok.Data;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.recipes.locks.InterProcessMutex;
 
 import java.util.concurrent.TimeUnit;
 
+@Data
 public class ZkLock {
     /**
      * 锁实现

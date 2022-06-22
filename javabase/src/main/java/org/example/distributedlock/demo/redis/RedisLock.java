@@ -1,6 +1,7 @@
-package org.example.redis;
+package org.example.distributedlock.demo.redis;
 
 
+import org.example.redis.RedissionUtil;
 import org.redisson.api.RBlockingQueue;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
