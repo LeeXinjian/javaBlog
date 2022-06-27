@@ -418,3 +418,10 @@ public boolean tryAcquire(int permits, long timeout, TimeUnit unit) {
 #### 2.1 初始化
 
 #### 2.2 限流
+
+
+
+
+参考文献
+* https://www.cnblogs.com/duanxz/p/14659528.html
+* http://ifeve.com/guava-ratelimiter/
