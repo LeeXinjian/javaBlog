@@ -71,22 +71,135 @@ public class BaseUse {
 ```
 
 ## 二、GuavaRateLimiter源码分析
-
-### 1. 限流
+        官方文档：http://docs.guava-libraries.googlecode.com/git/javadoc/com/google/common/util/concurrent/RateLimiter.html
+        并发编程网翻译：http://ifeve.com/guava-ratelimiter/
 
 GuavaRateLimiter使用了令牌桶算法，实现了平滑的流量整形。关于限流的基本算法讲解可以点击 [这里](https://note.youdao.com/ynoteshare/index.html?id=2eec5f5df33d02e743eb750e42fa45a3&type=note&_time=1655795577805)
 
+我们先来看下其核心方法
+
+![](.note_images/GuavaRateLimiter方法.png)
+### 1.GuavaRateLimiter核心字段与方法
+#### 1.构造方法
+GuavaRateLimiter提供了两组Create方法来区分两种不同的限流方式
+* 限流：
+```java
+    /*
+    * permitsPerSecond : 每秒最大可通过的许可数量
+    */
+    public static RateLimiter create(double permitsPerSecond)
+```
+
+* 预热
+
+```java
+    /*
+    * permitsPerSecond : 每秒最大可通过的许可数量
+    * warmupPeriod ：预热时长
+    * unit : 预热时长的时间单位
+    */
+    public static RateLimiter create(double permitsPerSecond, long warmupPeriod, TimeUnit unit)
+```
+
+两种限流措施通过不同的实现子类实现，我们看一下类图
+
+![](.note_images/限流方法的类图与基本字段.png)
+
+#### 2.速率修改
+GuavaRateLimiter也提供了一组限流速率的获取和修改方法
+
+```java
+
+public final double getRate()：
+
+/*
+  * permitsPerSecond : 更新RateLimiter的稳定速率，参数permitsPerSecond 由构造RateLimiter的工厂方法提供。
+ */
+public final void setRate(double permitsPerSecond)：
+
+```
+#### 3. 资源获取
+##### 3.1 acquire()方法
+和所有并发类框架相同，RateLimiter也提供了acquire方法实际获取资源和tryAcquire方法尝试获取资源
+
+acquire方法提供了两种方式，可以自定义获取令牌数
+
+```java
+/*
+*  从RateLimiter获取指定许可数，该方法会被阻塞直到获取到请求。
+*/
+public double acquire(int permits)
+
+/*
+* 从RateLimiter获取一个许可，该方法会被阻塞直到获取到请求。此方法等效于acquire（1）。
+*/
+public double  acquire()
+```
+
+官方文档中有这样一句话
+    
+    RateLimiter经常用于限制对一些物理资源或者逻辑资源的访问速率。
+
+RateLimiter使用了令牌桶算法，所以他重点是为了提供平滑的请求与（访问速率）。同时如果只是对于QPS进行限流，我们默认使用acquire()方法即可.
+RateLimiter不仅仅支持对流量的整形，还可以对网络资源、IO等进行固定速率的读取。官方给出了两种场景的使用示例：
+举例来说明如何使用RateLimiter，想象下我们需要处理一个任务列表，但我们不希望每秒的任务提交超过两个：
+
+举例来说明如何使用RateLimiter，想象下我们需要处理一个任务列表，但我们不希望每秒的任务提交超过两个：
+
+```java
+//速率是每秒两个许可
+final RateLimiter rateLimiter = RateLimiter.create(2.0);
+
+void submitTasks(List tasks, Executor executor) {
+    for (Runnable task : tasks) {
+        rateLimiter.acquire(); // 也许需要等待
+        executor.execute(task);
+    }
+}
+```
+
+再举另外一个例子，想象下我们制造了一个数据流，并希望以每秒5kb的速率处理它。可以通过要求每个字节代表一个许可，然后指定每秒5000个许可来完成：
+
+```java
+// 每秒5000个许可
+final RateLimiter rateLimiter = RateLimiter.create(5000.0); 
+
+void submitPacket(byte[] packet) {
+    rateLimiter.acquire(packet.length);
+    networkService.send(packet);
+}
+```
+
+
+##### 3.2 tryAcquire()方法
+其也提供四种tryAcquire()方法来尝试获取资源，返回boolean由适用放自确认获取失败后的逻辑
+```java
+boolean tryAcquire(int permits, long timeout, TimeUnit unit)：从RateLimiter 获取指定许可数如果该许可数可以在不超过timeout的时间内获取得到的话，或者如果无法在timeout 过期之前获取得到许可数的话，那么立即返回false （无需等待）。
+
+boolean tryAcquire(long timeout, TimeUnit unit)：从RateLimiter 获取许可如果该许可可以在不超过timeout的时间内获取得到的话，或者如果无法在timeout 过期之前获取得到许可的话，那么立即返回false（无需等待）。
+
+boolean tryAcquire(int permits)：如果可以立即获得许可证，则从该限速器处获得许可证。此方法等效于tryAcquire（permits，0，anyUnit）。
+
+boolean tryAcquire()：如果可以立即获得许可证，则从该限速器处获得许可证。等同于tryAcquire(1)。
+```
+
+### 2. 限流源码
+
 我们先来简单复习一下令牌桶的基本思想。令牌桶侧重的是对入口流量速率的限制。整体流程分为如下几步
+1. 计算当前可放过请求数
+   
+        当前可放过请求数 = 上次剩余可通过请求数 + (当次请求时间 - 上次请求时间) * 分配速率
 
-* 根据上次请求时间差 * 设定的分配速率 当前最大可放行请求个数
-* 剩余容量与最大可放行请求个数 取小作为实际 可放行请求个数
-* 剩余流量 - 可放行请求个数 > 0 则说明可以放行,否则不可放行
+2. 判断是否可通过
+        
+        当前可放过请求数 - 1 > 0 则可通过
+  
+RateLimiter会初始化一下几个值
 
-所以我们猜想RateLimiter的初始化便根据用户设置的QPS计算
-
-* 最大令牌数
-* 最大分配速率
-* 维护剩余令牌容量，上次请求时间。
+* maxPermits ：当前时间周期(秒)可通过的最大请求数
+* storedPermits：剩余可使用令牌数量
+* neetFreeTicketMicros: 下次允许请求时间
+* stableIntervalMicros： 两次请求时间最大间隔
 
 接下来我们开始跟踪初始化的源码,来查看其是如何维护这些数据的。
 
@@ -98,10 +211,7 @@ RateLimiter非常简单,只需要一行代码即可。
     RateLimiter rateLimiter = RateLimiter.create(10.0);
 ```
 
-在我们深究初始化做了什么操作之前，现在看下限流的类关系图与基本字段
-![](.note_images/限流方法的类图与基本字段.png)
-
-限流主要用到了SmoothBursty，可以根据类图判断其主要功能是根据SmoothRateLimter中的字段维护的。其用maxPermits和storedPermits维护最最大和现有的permit数量，这与我们猜想一致。
+限流主要用到了SmoothBursty实现类，可以根据类图判断其主要功能是根据SmoothRateLimter中的字段维护的。其用maxPermits和storedPermits维护最最大和现有的permit数量，
 还有另外两个字段,stableIntervalMicros表示两次请求最小的时间间隔,neetFreeTicketMicros表示下次请求的时间毫秒数。 可以猜想其判断 ”当前最大可放行请求个数“
 是根据计算当前请求时间是否到达了下次请求的时间（neetFreeTicketMicros）来判断的， 这样在短暂无流量后，突然来了一波流量的场景下，比（上次请求时间差 * 设定的分配速率）更能保证流量的平滑性。  
 
@@ -184,7 +294,7 @@ SmoothRateLimiter中的maxBurstSeconds之前没有介绍过，我们可以阅读
 ```
 可以发现主要的代码逻辑在doSetRate中。 
 这部分代码执行三个步骤
-*  resync(nowMicros),这个方法在限流使用中也会用到,会重置 storedPermits and nextFreeTicketMicro
+*  resync(nowMicros),这个方法在限流使用中也会用到,初始化情况中会重置 storedPermits and nextFreeTicketMicro
 *  初始化stableIntervalMicros,即根据Qps数算出每次请求间隔的毫秒数
 *  doSetRate: 初始化maxPermits和storedPermits
 

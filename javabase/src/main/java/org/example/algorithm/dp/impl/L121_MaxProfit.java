@@ -15,7 +15,7 @@ public class L121_MaxProfit implements DynamicProgram {
     }
 
     /**
-     * 一次遍历法
+     * 贪心算法
      */
     public int maxProfitOnceFor(int[] prices) {
         if (prices.length <= 1) {

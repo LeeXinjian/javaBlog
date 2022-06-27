@@ -3,7 +3,7 @@ package org.example.algorithm.link;
 
 import org.example.algorithm.util.link.ListNode;
 
-public class L32_MergeKLinkedList {
+public class L23_MergeKLinkedList {
 
     public static void main(String[] args) {
 
