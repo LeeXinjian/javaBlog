@@ -2,8 +2,6 @@ package org.example.algorithm.link.reverse;
 
 import org.example.algorithm.util.link.ListNode;
 
-import java.util.HashMap;
-
 public class L206_ReverseList {
 
     public ListNode reverseList(ListNode head){
@@ -17,6 +15,27 @@ public class L206_ReverseList {
         head.next = null;
 
         return newHead;
+    }
+
+    /**
+     * 遍历方式 反转链表
+     */
+    public ListNode reverseListIterator(ListNode head) {
+        if (head == null) {
+            return null;
+        }
+
+        ListNode tmp = head;
+        ListNode prev = null;
+
+        while (head != null) {
+            ListNode next = head.next;
+            head.next = prev;
+            prev = head;
+            head = next;
+        }
+
+        return tmp;
     }
 
 }
