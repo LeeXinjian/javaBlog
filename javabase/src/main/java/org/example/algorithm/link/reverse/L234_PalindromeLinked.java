@@ -5,6 +5,8 @@ import org.example.algorithm.util.link.ListNodeUtil;
 
 public class L234_PalindromeLinked {
 
+    ListNode curNode;
+
     public static void main(String[] args) {
         int[] nodes = {1,2,2,1};
         ListNode head = ListNodeUtil.initNodes(nodes);
@@ -13,33 +15,32 @@ public class L234_PalindromeLinked {
 
     }
 
+    public boolean check(ListNode head){
+        if (head == null) {
+            return true;
+        }
+
+        //递归到最下层元素
+        if (!check(head.next)) {
+            return false;
+        }
+
+        if (head.val != curNode.val) {
+            return false;
+        }
+
+        curNode = curNode.next;
+        return true;
+
+    }
+
     public boolean isPalindrome(ListNode head) {
-        ListNode temp = head;
-        ListNode newHead = reverNode(temp);
-        while (head != null && newHead != null) {
-            if (head.val != newHead.val) {
-                return false;
-            }
-
-            head = head.next;
-            newHead = newHead.next;
-        }
-
-        return head == null && newHead == null;
+        // 左指针
+        curNode = head;
+        //
+        return check(head.next);
     }
 
-    public ListNode reverNode(ListNode head) {
-        if (head == null || head.next == null) {
-            return head;
-        }
 
-        ListNode newHead = reverNode(head.next);
-
-
-        head.next.next = head;
-        head.next = null;
-
-        return newHead;
-    }
 
 }

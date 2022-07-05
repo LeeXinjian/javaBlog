@@ -604,6 +604,7 @@ if (left - 1 > 0) {
 ```
 
 
+![](.FlowLimit_images/各种限流方法的使用场景.png)
 
 参考文献：
 1. https://zhuanlan.zhihu.com/p/376564740
