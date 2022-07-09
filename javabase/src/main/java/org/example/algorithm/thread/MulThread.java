@@ -34,11 +34,6 @@ public class MulThread {
      */
     private static void doPrint(boolean printA, String printContent) {
         lock.lock();
-
-        ListNode lessThan,lessThanTmp = new ListNode();
-        ListNode equals,equalsTmp = new ListNode();
-        ListNode moreThan,moreThanTmp = new ListNode();
-
         try {
             while (true) {
                 // 当前不需要打印

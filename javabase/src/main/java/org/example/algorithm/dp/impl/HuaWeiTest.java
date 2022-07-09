@@ -1,4 +1,4 @@
-package org.example;
+package org.example.algorithm.dp.impl;
 
 import java.util.HashMap;
 
@@ -8,7 +8,7 @@ import java.util.HashMap;
  * n（台阶总数）, m（一次最多可以跨的阶数）,n、m必须大于0，并且m小于等于n；
  * 为了程序运行时间考虑，要求n小于等于30
  */
-public class Test {
+public class HuaWeiTest {
 
     public static void main(String[] args) {
         HashMap<Integer, Integer> cache = new HashMap<>();
