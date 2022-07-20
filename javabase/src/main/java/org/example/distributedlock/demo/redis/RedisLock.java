@@ -13,12 +13,13 @@ public class RedisLock {
 
     public static void main(String[] args) throws IOException {
         RedissonClient redissonClient = RedissionUtil.getRedissonClient("redis.yml");
+        new RedisLock().fairLock(redissonClient);
     }
 
     /**
      * 可重入锁的实现
      */
-    public void reentrantLock(RedissonClient redisson) throws InterruptedException {
+    public void reentrantLock(RedissonClient redisson) {
         RLock reetrantLock = redisson.getLock("lock");
         reetrantLock.lock();
     }
@@ -26,7 +27,7 @@ public class RedisLock {
     /**
      * 公平锁的实现
      */
-    public void fairLock(RedissonClient redisson) throws InterruptedException {
+    public void fairLock(RedissonClient redisson) {
         RLock fairLock = redisson.getFairLock("lock");
         fairLock.lock();
     }

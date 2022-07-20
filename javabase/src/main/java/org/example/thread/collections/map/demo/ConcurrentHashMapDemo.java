@@ -10,5 +10,6 @@ public class ConcurrentHashMapDemo {
     public static void main(String[] args) {
         ConcurrentHashMap concurrentHashMap = new ConcurrentHashMap();
         concurrentHashMap.put("String","value");
+        concurrentHashMap.size();
     }
 }
